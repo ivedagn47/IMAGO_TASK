@@ -74,7 +74,7 @@ def main():
         }
         </style>""", unsafe_allow_html=True)
     
-    st.title("Predict Hyperspectral Target Data")
+    st.title("Predict mycotoxin levels (DON concentration) in corn samples using hyperspectral imaging data.")
     st.write("Upload a CSV file with hyperspectral data (without target values) to get predictions.")
 
     folder = "final"
