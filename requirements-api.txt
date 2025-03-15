@@ -1,8 +1,8 @@
-fastapi==0.95.1
-uvicorn==0.22.0
-python-multipart==0.0.6
-pandas==1.5.3
-numpy==1.24.3
-scikit-learn==1.2.2
-tensorflow==2.12.0
-joblib==1.2.0
+fastapi
+uvicorn
+python-multipart
+pandas
+numpy
+scikit-learn
+tensorflow
+joblib
