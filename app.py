@@ -47,14 +47,11 @@ def run_data_exploration_for_prediction(df):
 
 def preprocess_input_data(df):
     """
-    This function applies preprocessing and dimensionality reduction.
-    We pass skip_plots=True so that the dimensionality reduction function does
-    not generate plots (assuming it accepts this flag).
+    This function applies preprocessing and dimensionality reduction using
+    your existing modules exactly as defined.
     """
     X_scaled = run_data_exploration_for_prediction(df)
-    # Here, we assume that your run_dimensionality_reduction function signature has been updated to:
-    # def run_dimensionality_reduction(X_scaled, y, desired_components=10, skip_plots=False):
-    X_reduced, _ = run_dimensionality_reduction(X_scaled, y=None, desired_components=10, skip_plots=True)
+    X_reduced, _ = run_dimensionality_reduction(X_scaled, y=None, desired_components=10)
     return X_reduced
 
 def plot_predictions(predictions):
