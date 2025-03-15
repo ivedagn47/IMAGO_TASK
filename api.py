@@ -7,23 +7,27 @@ import joblib
 import os
 import uvicorn
 import tensorflow as tf
-from src.preprocessing import load_dataset
+
+# Import your already created modules
+from src.preprocessing import load_dataset  # if needed elsewhere
 from src.dimensionality_reduction import run_dimensionality_reduction
 from src.utils.logger import setup_logger
 
 # Set up logger
 logger = setup_logger('api')
 
-app = FastAPI(title="Mycotoxin Concentration Prediction API",
-              description="API for predicting DON concentration using hyperspectral data")
+app = FastAPI(
+    title="Mycotoxin Concentration Prediction API",
+    description="API for predicting DON concentration using hyperspectral data"
+)
 
-# Add CORS middleware to allow requests from any origin (important for Streamlit)
+# Add CORS middleware to allow requests from any origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 def load_best_model_from_folder(folder="final"):
@@ -47,7 +51,10 @@ def load_best_model_from_folder(folder="final"):
     return None, None
 
 def run_data_exploration_for_prediction(df):
-    """Simplified version for prediction."""
+    """
+    Simplified data exploration for prediction.
+    Drops 'hsi_id' if present, scales data, and returns sample IDs.
+    """
     if 'hsi_id' in df.columns:
         X = df.drop(['hsi_id'], axis=1)
         sample_ids = df['hsi_id']
@@ -55,24 +62,30 @@ def run_data_exploration_for_prediction(df):
         X = df
         sample_ids = np.arange(len(X))
     
-    # Ideally, load a saved scaler from training
-    if os.path.exists('final/scaler.pkl'):
-        scaler = joblib.load('final/scaler.pkl')
+    # Load a saved scaler if available; otherwise fit a new RobustScaler
+    scaler_path = os.path.join("final", "scaler.pkl")
+    if os.path.exists(scaler_path):
+        scaler = joblib.load(scaler_path)
         X_scaled = scaler.transform(X)
+        logger.info("Loaded saved scaler.")
     else:
         from sklearn.preprocessing import RobustScaler
         scaler = RobustScaler()
         X_scaled = scaler.fit_transform(X)
+        logger.info("No saved scaler found; fitted new RobustScaler.")
     
     return X_scaled, sample_ids
 
 def preprocess_input_data(df):
-    """Apply existing preprocessing and dimensionality reduction."""
+    """
+    Applies data preprocessing and dimensionality reduction using your modules.
+    The 'skip_plots=True' flag is passed so that no plots are generated during prediction.
+    """
     X_scaled, sample_ids = run_data_exploration_for_prediction(df)
-    X_reduced, _ = run_dimensionality_reduction(X_scaled, y=None, desired_components=10)
+    X_reduced, _ = run_dimensionality_reduction(X_scaled, y=None, desired_components=10, skip_plots=True)
     return X_reduced, sample_ids
 
-# Load model at startup
+# Load model at startup using your module
 @app.on_event("startup")
 async def startup_event():
     global model, model_type
@@ -100,11 +113,11 @@ async def predict_from_csv(file: UploadFile = File(...)):
         df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
         logger.info(f"Successfully read CSV with {df.shape[0]} rows and {df.shape[1]} columns")
         
-        # Preprocess the data
+        # Preprocess data using your existing modules
         X_reduced, sample_ids = preprocess_input_data(df)
-        logger.info(f"Data preprocessed successfully, reduced to {X_reduced.shape[1]} features")
+        logger.info(f"Preprocessed data successfully; reduced to {X_reduced.shape[1]} features")
         
-        # Make predictions
+        # Make predictions based on model type
         if model_type == 'sklearn':
             predictions = model.predict(X_reduced)
         elif model_type == 'keras':
@@ -112,7 +125,6 @@ async def predict_from_csv(file: UploadFile = File(...)):
         else:
             raise HTTPException(status_code=500, detail="Unknown model type or model not loaded")
         
-        # Prepare results
         results = {
             "success": True,
             "predictions": predictions.tolist(),
@@ -120,7 +132,7 @@ async def predict_from_csv(file: UploadFile = File(...)):
             "message": "DON concentration prediction successful"
         }
         
-        logger.info(f"Successfully generated predictions for {len(predictions)} samples")
+        logger.info(f"Generated predictions for {len(predictions)} samples")
         return results
         
     except Exception as e:
