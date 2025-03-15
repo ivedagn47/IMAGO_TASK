@@ -1,125 +1,3 @@
-'''
-import streamlit as st
-import pandas as pd
-import numpy as np
-import os
-import joblib
-import matplotlib.pyplot as plt
-import tensorflow as tf
-from sklearn.preprocessing import RobustScaler
-
-# Importing the necessary functions from your modules
-from src.preprocessing import load_dataset
-from src.dimensionality_reduction import run_dimensionality_reduction
-
-def load_best_model_from_folder(folder="final"):
-    """Load the best model found in the specified folder."""
-    if not os.path.exists(folder):
-        st.error(f"Folder '{folder}' does not exist.")
-        return None, None
-        
-    for file_name in os.listdir(folder):
-        if file_name.endswith(".pkl"):
-            model_path = os.path.join(folder, file_name)
-            model = joblib.load(model_path)
-            st.success(f"Loaded model from {model_path}")
-            return model, 'sklearn'
-        elif file_name.endswith(".keras"):
-            model_path = os.path.join(folder, file_name)
-            model = tf.keras.models.load_model(model_path)
-            st.success(f"Loaded model from {model_path}")
-            return model, 'keras'
-    st.error("No saved model found in the specified folder.")
-    return None, None
-
-def run_data_exploration_for_prediction(df):
-    """Simplified version of run_data_exploration that just returns scaled data without generating plots, suitable for prediction."""
-    if 'hsi_id' in df.columns:
-        X = df.drop(['hsi_id'], axis=1)
-        sample_ids = df['hsi_id']
-    else:
-        X = df
-        sample_ids = np.arange(len(X))
-    
-    scaler = RobustScaler()
-    X_scaled = scaler.fit_transform(X)
-    return X_scaled
-
-def preprocess_input_data(df):
-    """This function applies existing preprocessing and dimensionality reduction."""
-    X_scaled = run_data_exploration_for_prediction(df)
-    X_reduced, _ = run_dimensionality_reduction(X_scaled, y=None, desired_components=10)
-    return X_reduced
-
-def plot_predictions(predictions):
-    """Plot predictions in a simple line plot."""
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(predictions, label='Predicted Values')
-    ax.set_title('Predicted Target Values')
-    ax.set_ylabel('Predicted Value')
-    ax.set_xlabel('Sample Index')
-    ax.legend()
-    ax.grid(True)
-    st.pyplot(fig)  # Passing the figure explicitly
-
-def main():
-    st.set_page_config(page_title="Hyperspectral Data Prediction", layout='wide', page_icon="🌟")
-    st.markdown("""<style>
-        .big-font {
-            font-size:20px !important;
-            font-weight: bold;
-        }
-        .streamlit-expanderHeader {
-            font-size: 16px !important;
-            font-weight: bold;
-        }
-        </style>""", unsafe_allow_html=True)
-    
-    st.title("Predict Hyperspectral Target Data")
-    st.write("Upload a CSV file with hyperspectral data (without target values) to get predictions.")
-
-    folder = "final"
-    model, model_type = load_best_model_from_folder(folder)
-    if model is None:
-        st.stop()
-
-    uploaded_file = st.file_uploader("Upload your spectral data CSV file", type="csv")
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        st.subheader("Uploaded Data Preview")
-        st.dataframe(df.head())
-
-        if st.button("Process and Predict", key="predict"):
-            with st.spinner("Processing data and making predictions..."):
-                X_reduced = preprocess_input_data(df)
-                if model_type == 'sklearn':
-                    predictions = model.predict(X_reduced)
-                elif model_type == 'keras':
-                    predictions = model.predict(X_reduced).flatten()
-                else:
-                    st.error("Unknown model type.")
-                    return
-
-                st.subheader("Predictions")
-                if 'hsi_id' in df.columns:
-                    pred_df = pd.DataFrame({
-                        'hsi_id': df['hsi_id'],
-                        'DON_concentration_predicted': predictions
-                    })
-                else:
-                    pred_df = pd.DataFrame({
-                        'Sample_Index': range(len(predictions)),
-                        'DON_concentration_predicted': predictions
-                    })
-                st.dataframe(pred_df)
-                csv = pred_df.to_csv(index=False)
-                st.download_button("Download predictions as CSV", csv, "predictions.csv", mime="text/csv")
-                plot_predictions(predictions)
-
-if __name__ == "__main__":
-    main()
-'''
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -129,7 +7,6 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import requests
 from sklearn.preprocessing import RobustScaler
-import io
 
 # Importing the necessary functions from your modules
 from src.preprocessing import load_dataset
@@ -156,22 +33,28 @@ def load_best_model_from_folder(folder="final"):
     return None, None
 
 def run_data_exploration_for_prediction(df):
-    """Simplified version of run_data_exploration that just returns scaled data without generating plots, suitable for prediction."""
+    """
+    Simplified version of data exploration that only scales the data without
+    generating plots. Suitable for prediction.
+    """
     if 'hsi_id' in df.columns:
         X = df.drop(['hsi_id'], axis=1)
-        sample_ids = df['hsi_id']
     else:
         X = df
-        sample_ids = np.arange(len(X))
-    
     scaler = RobustScaler()
     X_scaled = scaler.fit_transform(X)
     return X_scaled
 
 def preprocess_input_data(df):
-    """This function applies existing preprocessing and dimensionality reduction."""
+    """
+    This function applies preprocessing and dimensionality reduction.
+    We pass skip_plots=True so that the dimensionality reduction function does
+    not generate plots (assuming it accepts this flag).
+    """
     X_scaled = run_data_exploration_for_prediction(df)
-    X_reduced, _ = run_dimensionality_reduction(X_scaled, y=None, desired_components=10)
+    # Here, we assume that your run_dimensionality_reduction function signature has been updated to:
+    # def run_dimensionality_reduction(X_scaled, y, desired_components=10, skip_plots=False):
+    X_reduced, _ = run_dimensionality_reduction(X_scaled, y=None, desired_components=10, skip_plots=True)
     return X_reduced
 
 def plot_predictions(predictions):
@@ -179,11 +62,11 @@ def plot_predictions(predictions):
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.plot(predictions, label='Predicted Values')
     ax.set_title('Predicted Target Values')
-    ax.set_ylabel('Predicted Value')
     ax.set_xlabel('Sample Index')
+    ax.set_ylabel('Predicted Value')
     ax.legend()
     ax.grid(True)
-    st.pyplot(fig)  # Passing the figure explicitly
+    st.pyplot(fig)
 
 def predict_using_api(uploaded_file, api_url):
     """Send data to API and get predictions."""
@@ -217,13 +100,10 @@ def main():
     st.title("Predict Hyperspectral Target Data")
     st.write("Upload a CSV file with hyperspectral data to get DON concentration predictions.")
 
-    # Add a radio button to choose between local processing or API
-    prediction_method = st.radio(
-        "Choose prediction method:",
-        ("Local Processing", "API Processing")
-    )
-    
-    # Only load model if using local processing
+    # Let the user choose between local processing and API processing
+    prediction_method = st.radio("Choose prediction method:", ("Local Processing", "API Processing"))
+
+    # Load model for local processing
     model, model_type = None, None
     if prediction_method == "Local Processing":
         folder = "final"
@@ -231,7 +111,7 @@ def main():
         if model is None:
             st.warning("Model could not be loaded locally. Consider using API processing instead.")
 
-    # API URL input (only show if API processing is selected)
+    # API URL input for API processing
     api_url = None
     if prediction_method == "API Processing":
         api_url = st.text_input("API URL", value="http://localhost:8000")
@@ -255,13 +135,10 @@ def main():
                     else:
                         st.error("Unknown model type.")
                         return
-                    
-                    sample_ids = df['hsi_id'] if 'hsi_id' in df.columns else range(len(predictions))
-            
+                    sample_ids = df['hsi_id'] if 'hsi_id' in df.columns else list(range(len(predictions)))
             elif prediction_method == "API Processing" and api_url:
                 with st.spinner("Sending data to API and waiting for predictions..."):
-                    # Reset file pointer to beginning
-                    uploaded_file.seek(0)
+                    uploaded_file.seek(0)  # Reset file pointer
                     predictions, sample_ids = predict_using_api(uploaded_file, api_url)
                     if predictions is None:
                         return
