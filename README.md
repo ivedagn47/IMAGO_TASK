@@ -40,7 +40,7 @@ pip install -r requirements-api.txt
 ├── requirements.txt       # Python dependencies for the project
 ├── requirements-api.txt   # Additional dependencies for the API
 ├── train.py               # Script for training models
-└── api.py                 # FastAPI server script
+├── api.py                 # FastAPI server script
 └── app.py                 # Streamlit application script
 ```
 
@@ -51,24 +51,27 @@ Train the model using:
 ```bash
 python train.py
 ```
-The script trains multiple models and saves the best performing model to the `final/` directory.
+This script trains multiple models and saves the best performing model to the `final/` directory.
 
 ### Launching the API
 Start the FastAPI server:
 ```bash
 uvicorn api:app --reload
 ```
-After running, the server will be accessible at `http://127.0.0.1:8000`. Copy this URL.
+After running, the server will be accessible at `http://127.0.0.1:8000`. Copy this URL and update it in the Streamlit app (`app.py`) if needed.
 
 ### Running the Streamlit App
 Edit the `app.py` file to update the API URL variable with your local server's URL. Then, run the Streamlit application:
 ```bash
 streamlit run app.py
 ```
+You can also access the deployed Streamlit app on Render here: [Streamlit App](https://imagotask-xmlgzv3pkcapdlyzhhtyyb.streamlit.app/)
+
+## Deployment on Render
+This project has been deployed using Render. You can use Render to host your own version of this project if desired.
 
 ## Documentation
 Detailed docstrings are provided for each function and module, explaining their purpose and parameters.
-
 
 ## Contributing
 Contributions are welcome. Please fork the repository, make your changes, and submit a pull request.
