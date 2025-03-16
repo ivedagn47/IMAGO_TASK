@@ -18,8 +18,7 @@ The dataset features hyperspectral reflectance data from corn samples, with each
 ## Installation
 Clone the repository and install the required Python packages:
 ```bash
-git clone https://github.com/your-username/hyperspectral-don-prediction.git
-cd hyperspectral-don-prediction
+git clone https://github.com/ivedagn47/IMAGO_TASK.git
 pip install -r requirements.txt
 pip install -r requirements-api.txt
 ```
@@ -46,13 +45,8 @@ pip install -r requirements-api.txt
 ```
 
 ## Usage
-### Data Preprocessing
-Process the data by running:
-```bash
-python src/preprocessing.py
-```
 
-### Model Training
+### Model Preprocessing and Training 
 Train the model using:
 ```bash
 python train.py
@@ -75,11 +69,6 @@ streamlit run app.py
 ## Documentation
 Detailed docstrings are provided for each function and module, explaining their purpose and parameters.
 
-## Testing
-To validate the functionality of data processing and model evaluation, run:
-```bash
-pytest tests/
-```
 
 ## Contributing
 Contributions are welcome. Please fork the repository, make your changes, and submit a pull request.
