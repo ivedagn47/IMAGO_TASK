@@ -174,23 +174,46 @@ app.add_middleware(
 )
 
 def load_best_model_from_folder(folder="final"):
-    """Load the best model found in the specified folder."""
+    """
+    Load the best model found in the specified folder.
+    Ensures that only valid prediction models are loaded, not scalers or other objects.
+    """
     if not os.path.exists(folder):
         logger.error(f"Folder '{folder}' does not exist.")
         return None, None
-        
-    for file_name in os.listdir(folder):
-        if file_name.endswith(".pkl"):
-            model_path = os.path.join(folder, file_name)
-            model = joblib.load(model_path)
-            logger.info(f"Loaded model from {model_path}")
-            return model, 'sklearn'
-        elif file_name.endswith(".keras"):
-            model_path = os.path.join(folder, file_name)
-            model = tf.keras.models.load_model(model_path)
-            logger.info(f"Loaded model from {model_path}")
-            return model, 'keras'
-    logger.error("No saved model found in the specified folder.")
+    
+    # First try to find files with 'model' in the name
+    model_candidates = [f for f in os.listdir(folder) 
+                       if ('model' in f.lower() or 'classifier' in f.lower() or 'regressor' in f.lower())
+                       and (f.endswith('.pkl') or f.endswith('.keras'))]
+    
+    # If no explicit model files found, try all .pkl and .keras files except known non-models
+    if not model_candidates:
+        model_candidates = [f for f in os.listdir(folder) 
+                           if (f.endswith('.pkl') or f.endswith('.keras'))
+                           and not any(x in f.lower() for x in ['scaler', 'encoder', 'transformer', 'pca'])]
+    
+    # Try loading each candidate and check if it has a predict method
+    for file_name in model_candidates:
+        model_path = os.path.join(folder, file_name)
+        try:
+            if file_name.endswith('.pkl'):
+                model = joblib.load(model_path)
+                if hasattr(model, 'predict') and callable(model.predict):
+                    logger.info(f"Loaded sklearn model from {model_path}")
+                    return model, 'sklearn'
+                else:
+                    logger.warning(f"File {file_name} does not contain a valid model with predict method")
+            elif file_name.endswith('.keras'):
+                model = tf.keras.models.load_model(model_path)
+                logger.info(f"Loaded keras model from {model_path}")
+                return model, 'keras'
+        except Exception as e:
+            logger.error(f"Error loading {file_name}: {str(e)}")
+            continue
+    
+    # If we get here, no valid model was found
+    logger.error("No valid model with 'predict' method found in the folder.")
     return None, None
 
 def run_data_exploration_for_prediction(df):
