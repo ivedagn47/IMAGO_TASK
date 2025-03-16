@@ -1,12 +1,15 @@
 # src/dimensionality_reduction.py
 
-# Import necessary libraries
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.model_selection import train_test_split
+
+# Import the logger from utils
+from src.utils.logger import setup_logger
+logger = setup_logger('dimensionality_reduction')
 
 def run_dimensionality_reduction(X_scaled, y, desired_components=10):
     """
@@ -23,17 +26,21 @@ def run_dimensionality_reduction(X_scaled, y, desired_components=10):
         y: The original target variable.
     """
     
+    logger.info("Starting dimensionality reduction")
+    
     # Step 1: Perform PCA to reduce dimensionality
-    # Set up PCA to use up to 20 components (or fewer if the original feature set is small)
     n_components = min(20, X_scaled.shape[1])  # Ensure that the number of components does not exceed the number of features
+    logger.info(f"Performing PCA with n_components = {n_components}")
     pca = PCA(n_components=n_components)
     X_pca = pca.fit_transform(X_scaled)  # Apply PCA to the scaled data
-
+    logger.info("PCA transformation complete")
+    
     # Step 2: Calculate explained variance and cumulative variance
     explained_variance = pca.explained_variance_ratio_
     cumulative_variance = np.cumsum(explained_variance)  # Cumulative explained variance across components
     n_components_95 = np.argmax(cumulative_variance >= 0.95) + 1  # Find number of components for 95% variance
-
+    logger.info(f"Cumulative variance computed; {n_components_95} components cover 95% variance")
+    
     # Step 3: Plot cumulative explained variance vs. number of components
     plt.figure(figsize=(10, 6))
     plt.plot(range(1, n_components + 1), cumulative_variance, marker='o', linestyle='-')
@@ -46,7 +53,8 @@ def run_dimensionality_reduction(X_scaled, y, desired_components=10):
     plt.grid(True)
     plt.legend()
     plt.savefig('pca_variance.png')  # Save the plot to a file
-
+    logger.info("Saved PCA variance plot as 'pca_variance.png'")
+    
     # Step 4: Scatter plot of the first two principal components
     plt.figure(figsize=(10, 8))
     scatter = plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y, cmap='viridis', s=50, alpha=0.8)
@@ -56,7 +64,8 @@ def run_dimensionality_reduction(X_scaled, y, desired_components=10):
     plt.ylabel(f'PC2 ({explained_variance[1]:.2%} variance)')
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.savefig('pca_2d.png')  # Save the scatter plot to a file
-
+    logger.info("Saved 2D PCA scatter plot as 'pca_2d.png'")
+    
     # Step 5: Optional 3D visualization if at least three components are available
     if n_components >= 3:
         from mpl_toolkits.mplot3d import Axes3D  # Importing here to avoid issues if not needed
@@ -70,7 +79,8 @@ def run_dimensionality_reduction(X_scaled, y, desired_components=10):
         ax.set_zlabel('PC3')
         plt.title('3D PCA Visualization')
         plt.savefig('pca_3d.png')  # Save the 3D plot to a file
-
+        logger.info("Saved 3D PCA plot as 'pca_3d.png'")
+    
     # Step 6: Visualize the loading weights for the top 3 principal components
     plt.figure(figsize=(12, 8))
     for i in range(min(3, len(pca.components_))):  # Plot the first 3 components or fewer if less are available
@@ -81,9 +91,11 @@ def run_dimensionality_reduction(X_scaled, y, desired_components=10):
     plt.legend()
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.savefig('pca_loadings.png')  # Save the loading weights plot to a file
-
+    logger.info("Saved PCA loadings plot as 'pca_loadings.png'")
+    
     # Step 7: Perform t-SNE visualization using the PCA components covering 95% variance
     optimal_perplexity = min(30, len(X_scaled) // 5)  # Set perplexity based on the dataset size
+    logger.info(f"Performing t-SNE with optimal perplexity = {optimal_perplexity} on {n_components_95} PCA components")
     tsne = TSNE(n_components=2, random_state=42, perplexity=optimal_perplexity)
     X_tsne = tsne.fit_transform(X_pca[:, :n_components_95])  # Apply t-SNE on the selected PCA components
     plt.figure(figsize=(10, 8))
@@ -94,13 +106,14 @@ def run_dimensionality_reduction(X_scaled, y, desired_components=10):
     plt.ylabel('t-SNE Feature 2')
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.savefig('tsne_2d.png')  # Save the t-SNE plot to a file
-
+    logger.info("Saved t-SNE plot as 'tsne_2d.png'")
+    
     # Step 8: Ensure desired_components does not exceed the number of available PCA components
     if desired_components > X_pca.shape[1]:
-        print(f"Warning: desired_components ({desired_components}) is greater than available components "
-              f"({X_pca.shape[1]}). Using {X_pca.shape[1]} components instead.")
+        logger.warning(f"desired_components ({desired_components}) is greater than available components ({X_pca.shape[1]}). Using {X_pca.shape[1]} components instead.")
         desired_components = X_pca.shape[1]  # Adjust to available components if necessary
     
     # Step 9: Return the first 'desired_components' principal components
     X_model = X_pca[:, :desired_components]
+    logger.info(f"Dimensionality reduction complete. Returning data with shape {X_model.shape}")
     return X_model, y  # Return the reduced dataset along with the original target variable
