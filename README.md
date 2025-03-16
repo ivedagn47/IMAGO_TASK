@@ -67,6 +67,9 @@ streamlit run app.py
 ```
 You can also access the deployed Streamlit app on Render here: [Streamlit App](https://imagotask-xmlgzv3pkcapdlyzhhtyyb.streamlit.app/)
 
+![image](https://github.com/user-attachments/assets/e94bae68-3872-403e-8854-9cea0db476b3)
+
+
 ## Deployment on Render
 This project has been deployed using Render. You can use Render to host your own version of this project if desired.
 
